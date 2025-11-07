@@ -82,6 +82,29 @@ jobs:
         name: frontend-war-artifact
         path: artifacts/
 
+    - name: Preflight Frontend deploy checks
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SERVER_PORT || 22 }}
+        script: |
+          set -euo pipefail
+          echo "=== 前置检查: 目标服务器连接与目录权限 ==="
+          echo "当前用户:" $(whoami)
+          echo "用户信息:" $(id)
+          echo "主机名:" $(hostname)
+          echo "目标目录: /opt/blob-frontend/deploy"
+          sudo mkdir -p /opt/blob-frontend/deploy || mkdir -p /opt/blob-frontend/deploy
+          ls -ld /opt/blob-frontend /opt/blob-frontend/deploy || true
+          echo "磁盘空间:"
+          df -h || true
+          echo "写入测试:"
+          (sudo touch /opt/blob-frontend/deploy/__write_test__ || touch /opt/blob-frontend/deploy/__write_test__) && echo ok || (echo "❌ 无法写入目标目录" && exit 1)
+          (sudo rm -f /opt/blob-frontend/deploy/__write_test__ || rm -f /opt/blob-frontend/deploy/__write_test__) || true
+          echo "=== 前置检查完成 ==="
+
     - name: Deploy Frontend to server
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -92,6 +115,8 @@ jobs:
         source: "artifacts/*"
         target: "/opt/blob-frontend/deploy/"
         strip_components: 0
+        overwrite: true
+        debug: true
 
     - name: Deploy Frontend WAR
       uses: appleboy/ssh-action@v1.0.3
