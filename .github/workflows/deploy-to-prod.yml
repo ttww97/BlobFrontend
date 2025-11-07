@@ -92,8 +92,6 @@ jobs:
         source: "artifacts/*"
         target: "/opt/blob-frontend/deploy/"
         strip_components: 0
-        compress: true
-        ssh_options: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o Compression=yes -o CompressionLevel=6'
 
     - name: Deploy Frontend WAR
       uses: appleboy/ssh-action@v1.0.3
@@ -103,43 +101,58 @@ jobs:
         key: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
         port: ${{ secrets.SERVER_PORT || 22 }}
         script: |
+          set -euo pipefail
           echo "=== 部署前端 WAR 包 ==="
-          
+
           # 设置 Java 环境变量
           export JAVA_HOME=/usr/lib/jvm/jdk-24.0.1
-          export PATH=$JAVA_HOME/bin:$PATH
-          
+          export PATH="${JAVA_HOME}/bin:${PATH}"
+
           # 定义 Tomcat 路径
           TOMCAT_WEBAPPS="/usr/local/tomcat/webapps"
           TOMCAT_BIN="/usr/local/tomcat/bin"
           WAR_SOURCE="/opt/blob-frontend/deploy/BlobFrontend-1.0-SNAPSHOT.war"
-          
+          WAR_TARGET="${TOMCAT_WEBAPPS}/ROOT.war"
+
           # 检查 WAR 文件是否存在
-          if [ ! -f "$WAR_SOURCE" ]; then
-            echo "❌ WAR 文件不存在: $WAR_SOURCE"
+          if [ ! -f "${WAR_SOURCE}" ]; then
+            echo "❌ WAR 文件不存在: ${WAR_SOURCE}"
             exit 1
           fi
-          
-          echo "✅ 找到 WAR 文件: $WAR_SOURCE"
-          
+          echo "✅ 找到 WAR 文件: ${WAR_SOURCE}"
+
           # 1. 停止 Tomcat
           echo "--> 正在停止 Tomcat..."
-          $TOMCAT_BIN/shutdown.sh
-          sleep 8
-          
+          "${TOMCAT_BIN}/shutdown.sh" || true
+
+          # 等待 Tomcat 进程退出
+          for i in $(seq 1 10); do
+            if ! pgrep -f "org.apache.catalina.startup.Bootstrap" > /dev/null 2>&1; then
+              break
+            fi
+            echo "Tomcat 仍在关闭中，等待 3 秒..."
+            sleep 3
+          done
+
+          # 再次检查
+          if pgrep -f "org.apache.catalina.startup.Bootstrap" > /dev/null 2>&1; then
+            echo "⚠️ Tomcat 未能在预期时间内停止，请手动检查。"
+            exit 1
+          fi
+
           # 2. 清理旧的部署
           echo "--> 正在清理旧的 ROOT 部署..."
-          rm -rf $TOMCAT_WEBAPPS/ROOT
-          rm -f $TOMCAT_WEBAPPS/ROOT.war
-          
-          # 3. 部署新的 WAR 包为 ROOT.war
+          rm -rf "${TOMCAT_WEBAPPS}/ROOT"
+          rm -f "${WAR_TARGET}"
+
+          # 3. 部署新的 WAR 包为 ROOT.war (使用复制保留原始文件用于回滚)
           echo "--> 正在部署新的 WAR 包为 ROOT.war..."
-          cp "$WAR_SOURCE" "$TOMCAT_WEBAPPS/ROOT.war"
-          
+          cp "${WAR_SOURCE}" "${WAR_TARGET}"
+
           # 4. 启动 Tomcat
           echo "--> 正在启动 Tomcat..."
-          $TOMCAT_BIN/startup.sh
-          
+          "${TOMCAT_BIN}/startup.sh"
+
           echo "✅ 前端 WAR 包已部署到 Tomcat（端口 8080）"
 
     - name: Verify Frontend deployment
