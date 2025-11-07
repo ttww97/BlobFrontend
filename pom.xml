@@ -1,0 +1,147 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.example</groupId>
+  <artifactId>BlobFrontend</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <name>BlobFrontend - Frontend WAR Package</name>
+  <url>http://maven.apache.org</url>
+  <packaging>war</packaging>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.4.0</version>
+    <relativePath/>
+  </parent>
+
+  <properties>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <frontend.working.directory>${project.basedir}/frontend</frontend.working.directory>
+    <node.version>v18.20.3</node.version>
+  </properties>
+
+  <dependencies>
+    <!-- 最小依赖：只需要用于构建 WAR 的依赖 -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-tomcat</artifactId>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- 前端构建：安装 Node、执行 npm install 和 npm run build -->
+      <plugin>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+        <version>1.15.0</version>
+        <configuration>
+          <workingDirectory>${frontend.working.directory}</workingDirectory>
+          <installDirectory>${project.build.directory}/frontend</installDirectory>
+          <environmentVariables>
+            <NPM_CONFIG_REGISTRY>https://mirrors.cloud.tencent.com/npm/</NPM_CONFIG_REGISTRY>
+            <NPM_CONFIG_LOGLEVEL>info</NPM_CONFIG_LOGLEVEL>
+            <NPM_CONFIG_FETCH_RETRIES>5</NPM_CONFIG_FETCH_RETRIES>
+            <NPM_CONFIG_FETCH_RETRY_MINTIMEOUT>20000</NPM_CONFIG_FETCH_RETRY_MINTIMEOUT>
+            <NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT>60000</NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT>
+            <NPM_CONFIG_PROGRESS>false</NPM_CONFIG_PROGRESS>
+            <NPM_CONFIG_CACHE>${project.build.directory}/.npm-cache</NPM_CONFIG_CACHE>
+          </environmentVariables>
+        </configuration>
+        <executions>
+          <execution>
+            <id>install-node-and-npm</id>
+            <goals>
+              <goal>install-node-and-npm</goal>
+            </goals>
+            <configuration>
+              <nodeVersion>${node.version}</nodeVersion>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm-config-registry-and-retries</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>config set registry https://mirrors.cloud.tencent.com/npm/ --global</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm-config-retry-params</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>config set fetch-retries 5 --global</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm-config-retry-timeout-min</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>config set fetch-retry-mintimeout 20000 --global</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm-config-retry-timeout-max</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>config set fetch-retry-maxtimeout 60000 --global</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm-install</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>install --no-audit --no-fund --legacy-peer-deps</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm-build</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <arguments>run build</arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- 将前端构建产物(frontend/dist)打入 WAR 根目录 -->
+      <plugin>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>3.4.0</version>
+        <configuration>
+          <failOnMissingWebXml>false</failOnMissingWebXml>
+          <webResources>
+            <resource>
+              <directory>${project.basedir}/frontend/dist</directory>
+              <targetPath>/</targetPath>
+              <includes>
+                <include>**/*</include>
+              </includes>
+            </resource>
+          </webResources>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
+
