@@ -1,0 +1,82 @@
+kind: pipeline
+type: docker
+name: deploy-frontend
+
+steps:
+  - name: build
+    image: maven:3.9-eclipse-temurin-24
+    commands:
+      - echo "=== 构建 WAR 包 ==="
+      - mvn clean package -DskipTests
+      - ls -lh target/*.war
+
+  - name: prepare-artifacts
+    image: alpine
+    commands:
+      - echo "=== 准备部署文件 ==="
+      - mkdir -p artifacts
+      - cp target/BlobFrontend-1.0-SNAPSHOT.war artifacts/
+      - ls -lh artifacts/
+
+  - name: create-tar
+    image: alpine
+    commands:
+      - echo "=== 创建 tar 压缩包 ==="
+      # 关键修复：使用 -C artifacts 参数，这样 tar 文件不会包含 artifacts/ 目录结构
+      - tar -zcf /tmp/jahPonMqBo.tar.gz -C artifacts BlobFrontend-1.0-SNAPSHOT.war
+      - echo "✅ Tar 文件已创建"
+      - tar -tzf /tmp/jahPonMqBo.tar.gz
+      - ls -lh /tmp/jahPonMqBo.tar.gz
+
+  - name: scp-to-server
+    image: appleboy/drone-scp:1.6.14
+    settings:
+      host:
+        from_secret: server_host
+      username:
+        from_secret: server_user
+      key:
+        from_secret: server_ssh_key
+      port: 22
+      source:
+        - /tmp/jahPonMqBo.tar.gz
+      target: /tmp/
+      strip_components: 0
+      overwrite: true
+      debug: true
+
+  - name: deploy-on-server
+    image: appleboy/drone-ssh:1.7.0
+    settings:
+      host:
+        from_secret: server_host
+      username:
+        from_secret: server_user
+      key:
+        from_secret: server_ssh_key
+      port: 22
+      script:
+        - |
+          set -euo pipefail
+          echo "=== 在远程服务器上部署 ==="
+          
+          # 1. 创建部署目录（如果不存在）
+          echo "创建部署目录..."
+          sudo mkdir -p /opt/blob-frontend/deploy
+          sudo chown $USER:$USER /opt/blob-frontend/deploy || true
+          
+          # 2. 解压 tar 文件
+          echo "解压 tar 文件..."
+          cd /tmp
+          tar -zxf jahPonMqBo.tar.gz --overwrite -C /opt/blob-frontend/deploy/
+          
+          # 3. 验证文件
+          echo "验证部署文件..."
+          ls -lh /opt/blob-frontend/deploy/BlobFrontend-1.0-SNAPSHOT.war
+          
+          # 4. 清理临时文件
+          echo "清理临时文件..."
+          rm -f /tmp/jahPonMqBo.tar.gz
+          
+          echo "✅ 部署完成"
+
