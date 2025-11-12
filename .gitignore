@@ -17,7 +17,7 @@ frontend/.next-env.d.ts
 frontend/.contentlayer/
 
 # Environment variables
-frontend/.env
+# frontend/.env - 已提交到代码库，用于线上部署
 frontend/.env.local
 frontend/.env.development.local
 frontend/.env.test.local
