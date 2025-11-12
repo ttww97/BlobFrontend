@@ -8,3 +8,26 @@ frontend/dist/
 *.iml
 pom.xml.backup
 
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/.next-env.d.ts
+
+# Contentlayer
+frontend/.contentlayer/
+
+# Environment variables
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Vercel
+frontend/.vercel
+
+# Debug
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
