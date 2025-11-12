@@ -30,7 +30,7 @@ const generateRss = (config, posts, page = 'feed.xml') => `
       <language>${config.language}</language>
       <managingEditor>${config.email} (${config.author})</managingEditor>
       <webMaster>${config.email} (${config.author})</webMaster>
-      <lastBuildDate>${new Date(posts[0].date).toUTCString()}</lastBuildDate>
+      <lastBuildDate>${posts.length > 0 ? new Date(posts[0].date).toUTCString() : new Date().toUTCString()}</lastBuildDate>
       <atom:link href="${config.siteUrl}/${page}" rel="self" type="application/rss+xml"/>
       ${posts.map((post) => generateRssItem(config, post)).join('')}
     </channel>
@@ -47,11 +47,15 @@ async function generateRSS(config, allBlogs, page = 'feed.xml') {
 
   if (publishPosts.length > 0) {
     for (const tag of Object.keys(tagData)) {
-      const filteredPosts = allBlogs.filter((post) => post.tags.map((t) => slug(t)).includes(tag))
-      const rss = generateRss(config, filteredPosts, `tags/${tag}/${page}`)
-      const rssPath = path.join(outputFolder, 'tags', tag)
-      mkdirSync(rssPath, { recursive: true })
-      writeFileSync(path.join(rssPath, page), rss)
+      const filteredPosts = allBlogs.filter(
+        (post) => post.tags && post.tags.map((t) => slug(t)).includes(tag)
+      )
+      if (filteredPosts.length > 0) {
+        const rss = generateRss(config, filteredPosts, `tags/${tag}/${page}`)
+        const rssPath = path.join(outputFolder, 'tags', tag)
+        mkdirSync(rssPath, { recursive: true })
+        writeFileSync(path.join(rssPath, page), rss)
+      }
     }
   }
 }

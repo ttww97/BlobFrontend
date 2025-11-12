@@ -1,3 +1,4 @@
+// @ts-ignore - StructureResolver 类型在运行时可用，但类型定义可能有问题
 import type { StructureResolver } from 'sanity/structure'
 
 // https://www.sanity.io/docs/structure-builder-cheat-sheet

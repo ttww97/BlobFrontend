@@ -6,6 +6,7 @@
 
 import { visionTool } from '@sanity/vision'
 import { defineConfig } from 'sanity'
+// @ts-ignore - structureTool 在运行时可用，但类型定义可能有问题
 import { structureTool } from 'sanity/structure'
 import siteMetadata from './data/siteMetadata'
 

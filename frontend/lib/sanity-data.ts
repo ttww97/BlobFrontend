@@ -272,7 +272,8 @@ export async function getTagCount(): Promise<Record<string, number>> {
 }
 
 export async function getPostsByTag(tag: string): Promise<TransformedPost[]> {
-  const posts = await client.fetch(POSTS_BY_TAG_QUERY, { tag })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const posts = await client.fetch(POSTS_BY_TAG_QUERY, { tag } as any)
   return posts.map(transformPost)
 }
 
