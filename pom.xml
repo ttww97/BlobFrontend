@@ -47,13 +47,8 @@
           <workingDirectory>${frontend.working.directory}</workingDirectory>
           <installDirectory>${project.build.directory}/frontend</installDirectory>
           <environmentVariables>
-            <NPM_CONFIG_REGISTRY>https://mirrors.cloud.tencent.com/npm/</NPM_CONFIG_REGISTRY>
-            <NPM_CONFIG_LOGLEVEL>info</NPM_CONFIG_LOGLEVEL>
-            <NPM_CONFIG_FETCH_RETRIES>5</NPM_CONFIG_FETCH_RETRIES>
-            <NPM_CONFIG_FETCH_RETRY_MINTIMEOUT>20000</NPM_CONFIG_FETCH_RETRY_MINTIMEOUT>
-            <NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT>60000</NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT>
-            <NPM_CONFIG_PROGRESS>false</NPM_CONFIG_PROGRESS>
-            <NPM_CONFIG_CACHE>${project.build.directory}/.npm-cache</NPM_CONFIG_CACHE>
+            <YARN_ENABLE_IMMUTABLE_INSTALLS>false</YARN_ENABLE_IMMUTABLE_INSTALLS>
+            <YARN_CACHE_FOLDER>${project.build.directory}/.yarn-cache</YARN_CACHE_FOLDER>
           </environmentVariables>
         </configuration>
         <executions>
@@ -67,58 +62,64 @@
             </configuration>
           </execution>
           <execution>
-            <id>npm-config-registry-and-retries</id>
+            <id>enable-corepack</id>
             <goals>
               <goal>npm</goal>
             </goals>
             <configuration>
-              <arguments>config set registry https://mirrors.cloud.tencent.com/npm/ --global</arguments>
+              <arguments>install -g corepack@latest</arguments>
             </configuration>
           </execution>
           <execution>
-            <id>npm-config-retry-params</id>
+            <id>corepack-enable</id>
             <goals>
               <goal>npm</goal>
             </goals>
             <configuration>
-              <arguments>config set fetch-retries 5 --global</arguments>
+              <arguments>exec corepack enable</arguments>
             </configuration>
           </execution>
           <execution>
-            <id>npm-config-retry-timeout-min</id>
+            <id>corepack-prepare-yarn</id>
             <goals>
               <goal>npm</goal>
             </goals>
             <configuration>
-              <arguments>config set fetch-retry-mintimeout 20000 --global</arguments>
+              <arguments>exec corepack prepare yarn@3.6.1 --activate</arguments>
             </configuration>
           </execution>
           <execution>
-            <id>npm-config-retry-timeout-max</id>
+            <id>yarn-install</id>
             <goals>
               <goal>npm</goal>
             </goals>
             <configuration>
-              <arguments>config set fetch-retry-maxtimeout 60000 --global</arguments>
+              <arguments>exec --prefix ${frontend.working.directory} yarn install --immutable</arguments>
             </configuration>
           </execution>
           <execution>
-            <id>npm-install</id>
-            <goals>
-              <goal>npm</goal>
-            </goals>
-            <configuration>
-              <arguments>install --no-audit --no-fund --legacy-peer-deps</arguments>
-            </configuration>
-          </execution>
-          <execution>
-            <id>npm-build</id>
+            <id>yarn-build</id>
             <goals>
               <goal>npm</goal>
             </goals>
             <phase>generate-resources</phase>
             <configuration>
-              <arguments>run build</arguments>
+              <arguments>exec --prefix ${frontend.working.directory} yarn run build</arguments>
+              <environmentVariables>
+                <EXPORT>true</EXPORT>
+                <!-- Next.js 会自动从 .env 文件读取环境变量 -->
+                <!-- 如果需要在 CI/CD 中覆盖，可以在 GitHub Actions 中设置环境变量 -->
+              </environmentVariables>
+            </configuration>
+          </execution>
+          <execution>
+            <id>move-out-to-dist</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <arguments>exec --prefix ${frontend.working.directory} sh -c "if [ -d out ]; then rm -rf dist && mv out dist; fi"</arguments>
             </configuration>
           </execution>
         </executions>
