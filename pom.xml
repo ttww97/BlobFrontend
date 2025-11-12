@@ -94,7 +94,8 @@
               <goal>npm</goal>
             </goals>
             <configuration>
-              <arguments>exec --prefix ${frontend.working.directory} yarn install --immutable</arguments>
+              <!-- 使用 frozen-lockfile 选项，在 CI 环境中更稳定 -->
+              <arguments>exec --prefix ${frontend.working.directory} yarn install --frozen-lockfile</arguments>
             </configuration>
           </execution>
           <execution>
@@ -119,7 +120,7 @@
             </goals>
             <phase>generate-resources</phase>
             <configuration>
-              <arguments>exec --prefix ${frontend.working.directory} sh -c "if [ -d out ]; then rm -rf dist && mv out dist; fi"</arguments>
+              <arguments>exec --prefix ${frontend.working.directory} sh -c "if [ -d out ]; then rm -rf dist &amp;&amp; mv out dist; fi"</arguments>
             </configuration>
           </execution>
         </executions>
